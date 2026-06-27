@@ -1385,11 +1385,19 @@ If they ask about medicines or health, give simple helpful advice but always say
     });
     const data = await response.json();
     removeTyping();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I could not understand. Please try again.';
+    if (data.error) {
+      addAIMessage('⚠️ API ERROR: ' + data.error.message);
+      return;
+    }
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!reply) {
+      addAIMessage('⚠️ NO REPLY. Raw response: ' + JSON.stringify(data).slice(0, 300));
+      return;
+    }
     addAIMessage(reply);
   } catch(e) {
     removeTyping();
-    addAIMessage('Sorry, I\'m having trouble connecting. Please check your internet and try again. 🙏');
+    addAIMessage('⚠️ FETCH FAILED: ' + e.message);
   }
 }
 
