@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Saathi — Senior Life Companion</title>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
+<style>
+  :root {
+    --saffron: #FF6B00;
+    --saffron-light: #FFF0E6;
+    --saffron-dark: #CC5500;
+    --deep: #1A1A2E;
+    --slate: #4A5568;
+    --muted: #718096;
+    --border: #E2E8F0;
+    --bg: #F8FAFC;
+    --white: #FFFFFF;
+    --green: #22C55E;
+    --red: #EF4444;
+    --yellow: #F59E0B;
+    --card: #FFFFFF;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
+    --radius: 16px;
+    --radius-sm: 10px;
+    --font: 'Segoe UI', system-ui, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--deep);
+    max-width: 430px;
+    margin: 0 auto;
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* ── SCREENS ── */
+  .screen { display: none; min-height: 100vh; flex-direction: column; }
+  .screen.active { display: flex; }
+
+  /* ── SPLASH ── */
+  #splash {
+    background: linear-gradient(160deg, #FF6B00 0%, #FF8C00 50%, #FFB347 100%);
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .splash-logo { font-size: 72px; filter: drop-shadow(0 4px 12px rgba(0,0,0,0.2)); }
+  .splash-name { font-size: 42px; font-weight: 800; color: #fff; letter-spacing: -1px; }
+  .splash-tagline { font-size: 16px; color: rgba(255,255,255,0.85); text-align: center; padding: 0 40px; }
+  .splash-loader { width: 48px; height: 4px; background: rgba(255,255,255,0.3); border-radius: 4px; overflow: hidden; margin-top: 20px; }
+  .splash-loader::after { content:''; display:block; height:100%; width:40%; background:#fff; border-radius:4px; animation: slide 1.2s ease-in-out infinite; }
+  @keyframes slide { 0%{transform:translateX(-100%)} 100%{transform:translateX(350%)} }
+
+  /* ── AUTH ── */
+  #auth {
+    background: var(--white);
+    padding: 0;
+  }
+  .auth-hero {
+    background: linear-gradient(160deg, #FF6B00, #FFB347);
+    padding: 48px 32px 40px;
+    text-align: center;
+  }
+  .auth-hero-icon { font-size: 56px; }
+  .auth-hero h1 { font-size: 32px; font-weight: 800; color: #fff; margin-top: 12px; }
+  .auth-hero p { color: rgba(255,255,255,0.85); font-size: 15px; margin-top: 6px; }
+  .auth-body { padding: 32px 24px; flex: 1; }
+  .lang-toggle-row { display: flex; gap: 8px; margin-bottom: 28px; justify-content: center; }
+  .lang-btn { flex: 1; padding: 10px; border: 2px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; background: #fff; color: var(--slate); transition: all 0.2s; }
+  .lang-btn.active { border-color: var(--saffron); background: var(--saffron-light); color: var(--saffron); }
+  
+  .auth-tabs { display: flex; border: 2px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 28px; }
+  .auth-tab { flex: 1; padding: 12px; font-size: 15px; font-weight: 600; cursor: pointer; border: none; background: #fff; color: var(--muted); transition: all 0.2s; }
+  .auth-tab.active { background: var(--saffron); color: #fff; }
+  
+  .field { margin-bottom: 18px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; color: var(--slate); margin-bottom: 6px; }
+  .field input, .field select, .field textarea {
+    width: 100%; padding: 14px 16px; border: 2px solid var(--border);
+    border-radius: var(--radius-sm); font-size: 15px; font-family: var(--font);
+    color: var(--deep); background: #fff; outline: none; transition: border-color 0.2s;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--saffron); }
+  .field textarea { resize: none; height: 80px; }
+  .field .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  
+  .otp-row { display: flex; gap: 10px; }
+  .otp-row input { flex: 1; }
+  
+  .btn-primary {
+    width: 100%; padding: 16px; background: linear-gradient(135deg, var(--saffron), var(--saffron-dark));
+    color: #fff; border: none; border-radius: var(--radius-sm); font-size: 17px;
+    font-weight: 700; cursor: pointer; transition: opacity 0.2s; letter-spacing: 0.3px;
+  }
+  .btn-primary:active { opacity: 0.85; }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-outline {
+    width: 100%; padding: 14px; background: transparent; color: var(--saffron);
+    border: 2px solid var(--saffron); border-radius: var(--radius-sm); font-size: 15px;
+    font-weight: 600; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-sm {
+    padding: 10px 20px; background: var(--saffron); color: #fff; border: none;
+    border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  
+  /* ── ONBOARDING ── */
+  #onboarding { background: var(--bg); }
+  .ob-header {
+    background: var(--white);
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 0; z-index: 10;
+  }
+  .ob-progress-bar { height: 4px; background: var(--border); border-radius: 4px; margin-top: 12px; overflow: hidden; }
+  .ob-progress-fill { height: 100%; background: linear-gradient(90deg, var(--saffron), #FFB347); border-radius: 4px; transition: width 0.4s ease; }
+  .ob-step-label { font-size: 13px; color: var(--muted); margin-top: 6px; }
+  .ob-step-label span { color: var(--saffron); font-weight: 600; }
+  
+  .ob-body { padding: 24px 20px; flex: 1; overflow-y: auto; }
+  .ob-section-title { font-size: 22px; font-weight: 800; color: var(--deep); margin-bottom: 6px; }
+  .ob-section-sub { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+  
+  .row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  
+  .medicine-card {
+    background: var(--white); border: 2px solid var(--border); border-radius: var(--radius-sm);
+    padding: 14px; margin-bottom: 10px; position: relative;
+  }
+  .medicine-card .med-name { font-weight: 700; font-size: 15px; color: var(--deep); }
+  .medicine-card .med-detail { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .medicine-card .del-btn { position: absolute; top: 12px; right: 12px; background: #FEE2E2; border: none; color: var(--red); padding: 4px 8px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+  
+  .add-med-form { background: var(--white); border: 2px dashed var(--saffron); border-radius: var(--radius-sm); padding: 16px; margin-bottom: 16px; }
+  .add-med-form .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+  
+  .checkbox-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .checkbox-item { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border: 2px solid var(--border); border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+  .checkbox-item.selected { border-color: var(--saffron); background: var(--saffron-light); }
+  .checkbox-item input { display: none; }
+  .checkbox-item span { font-size: 14px; font-weight: 500; color: var(--slate); }
+  .checkbox-item.selected span { color: var(--saffron); }
+  
+  .time-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .time-chip { padding: 8px 14px; border: 2px solid var(--border); border-radius: 20px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--slate); transition: all 0.2s; background: #fff; }
+  .time-chip.selected { border-color: var(--saffron); background: var(--saffron); color: #fff; }
+  
+  .ob-footer { padding: 16px 20px; background: var(--white); border-top: 1px solid var(--border); display: flex; gap: 10px; }
+  .btn-back { padding: 16px 24px; background: var(--bg); color: var(--slate); border: 2px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; }
+
+  /* ── MAIN APP ── */
+  #app { background: var(--bg); padding-bottom: 80px; }
+  
+  .app-header {
+    background: linear-gradient(135deg, #FF6B00, #FF8C00);
+    padding: 20px 20px 24px;
+    position: relative;
+  }
+  .app-header-top { display: flex; justify-content: space-between; align-items: center; }
+  .user-greeting { color: rgba(255,255,255,0.85); font-size: 14px; }
+  .user-name { color: #fff; font-size: 22px; font-weight: 800; margin-top: 2px; }
+  .header-avatar { width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+  
+  .tab-bar {
+    position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 430px; background: var(--white);
+    border-top: 1px solid var(--border); display: flex;
+    padding: 8px 0 12px; z-index: 100;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.06);
+  }
+  .tab-item { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; padding: 4px 0; }
+  .tab-icon { font-size: 22px; }
+  .tab-label { font-size: 11px; font-weight: 600; color: var(--muted); }
+  .tab-item.active .tab-label { color: var(--saffron); }
+  .tab-item.active .tab-icon { filter: saturate(2); }
+  
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+  
+  /* ── HOME TAB ── */
+  .sos-btn {
+    margin: -12px 20px 0; background: var(--red);
+    border: none; border-radius: var(--radius); padding: 20px;
+    color: #fff; font-size: 20px; font-weight: 800; width: calc(100% - 40px);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 12px;
+    box-shadow: 0 4px 20px rgba(239,68,68,0.4); letter-spacing: 0.5px;
+    position: relative; z-index: 1;
+  }
+  .sos-btn:active { transform: scale(0.97); }
+  .sos-pulse { width: 16px; height: 16px; background: #fff; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.6} }
+  
+  .section { padding: 20px 20px 0; }
+  .section-title { font-size: 18px; font-weight: 700; color: var(--deep); margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+  .section-title .see-all { font-size: 13px; font-weight: 600; color: var(--saffron); cursor: pointer; }
+  
+  .card { background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 12px; }
+  
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .stat-card { background: var(--card); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow); text-align: center; }
+  .stat-icon { font-size: 28px; margin-bottom: 6px; }
+  .stat-value { font-size: 22px; font-weight: 800; color: var(--deep); }
+  .stat-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  
+  .mood-row { display: flex; gap: 8px; justify-content: space-between; margin-top: 4px; }
+  .mood-btn { flex: 1; padding: 12px 4px; border: 2px solid var(--border); border-radius: 10px; background: #fff; cursor: pointer; font-size: 22px; text-align: center; transition: all 0.2s; }
+  .mood-btn.selected { border-color: var(--saffron); background: var(--saffron-light); }
+  
+  .med-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+  .med-item:last-child { border-bottom: none; }
+  .med-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .med-dot.taken { background: var(--green); }
+  .med-dot.pending { background: var(--yellow); }
+  .med-dot.missed { background: var(--red); }
+  .med-info { flex: 1; }
+  .med-name { font-size: 15px; font-weight: 600; color: var(--deep); }
+  .med-time { font-size: 12px; color: var(--muted); }
+  .med-action { padding: 6px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; border: none; cursor: pointer; }
+  .med-action.take { background: var(--green); color: #fff; }
+  .med-action.taken-lbl { background: #DCFCE7; color: var(--green); cursor: default; }
+  .med-action.missed-lbl { background: #FEE2E2; color: var(--red); cursor: default; }
+  
+  /* ── HEALTH TAB ── */
+  .vital-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .vital-card { background: var(--card); border-radius: var(--radius-sm); padding: 16px; box-shadow: var(--shadow); }
+  .vital-icon { font-size: 24px; margin-bottom: 6px; }
+  .vital-val { font-size: 20px; font-weight: 800; color: var(--deep); }
+  .vital-unit { font-size: 12px; color: var(--muted); }
+  .vital-label { font-size: 13px; color: var(--slate); margin-top: 4px; }
+  .vital-status { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 20px; margin-top: 6px; }
+  .vital-status.normal { background: #DCFCE7; color: #16A34A; }
+  .vital-status.caution { background: #FEF3C7; color: #D97706; }
+  
+  .log-vital-form { background: var(--white); border: 2px solid var(--border); border-radius: var(--radius-sm); padding: 16px; margin-top: 12px; }
+  .log-vital-form .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .log-vital-form input { flex: 1; min-width: 80px; padding: 10px 12px; border: 2px solid var(--border); border-radius: 8px; font-size: 14px; outline: none; }
+  .log-vital-form input:focus { border-color: var(--saffron); }
+  
+  /* ── CHAT TAB ── */
+  .chat-header { background: linear-gradient(135deg, #FF6B00, #FF8C00); padding: 20px; }
+  .chat-header h2 { color: #fff; font-size: 20px; font-weight: 800; }
+  .chat-header p { color: rgba(255,255,255,0.8); font-size: 13px; margin-top: 2px; }
+  
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 300px; max-height: 55vh; }
+  .msg { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; }
+  .msg.ai { background: var(--white); color: var(--deep); border-bottom-left-radius: 4px; box-shadow: var(--shadow); align-self: flex-start; }
+  .msg.user { background: var(--saffron); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
+  .msg-time { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .typing-indicator { display: flex; gap: 4px; align-items: center; padding: 12px 16px; background: var(--white); border-radius: 18px; border-bottom-left-radius: 4px; box-shadow: var(--shadow); width: fit-content; }
+  .typing-dot { width: 8px; height: 8px; background: var(--muted); border-radius: 50%; animation: bounce 1.2s ease-in-out infinite; }
+  .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+  .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-8px)} }
+  
+  .chat-input-row { display: flex; gap: 8px; padding: 12px 16px; background: var(--white); border-top: 1px solid var(--border); }
+  .chat-input-row input { flex: 1; padding: 12px 16px; border: 2px solid var(--border); border-radius: 24px; font-size: 15px; outline: none; }
+  .chat-input-row input:focus { border-color: var(--saffron); }
+  .send-btn { width: 44px; height: 44px; background: var(--saffron); border: none; border-radius: 50%; color: #fff; font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  
+  /* ── FAMILY TAB ── */
+  .family-card { background: var(--white); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); margin-bottom: 12px; display: flex; align-items: center; gap: 14px; }
+  .family-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--saffron-light); display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; }
+  .family-name { font-size: 16px; font-weight: 700; color: var(--deep); }
+  .family-relation { font-size: 13px; color: var(--muted); }
+  .family-actions { display: flex; gap: 8px; margin-left: auto; }
+  .icon-btn { width: 38px; height: 38px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .icon-btn.call { background: #DCFCE7; }
+  .icon-btn.msg { background: #E0F2FE; }
+  
+  .update-preview { background: linear-gradient(135deg, var(--saffron-light), #FFF7ED); border: 2px solid #FFD9B3; border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+  .update-preview h4 { font-size: 15px; font-weight: 700; color: var(--saffron-dark); margin-bottom: 10px; }
+  .update-preview p { font-size: 14px; color: var(--slate); line-height: 1.6; }
+  
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: var(--deep); color: #fff; padding: 14px 24px; border-radius: 12px;
+    font-size: 14px; font-weight: 600; z-index: 999; opacity: 0;
+    transition: opacity 0.3s; pointer-events: none; white-space: nowrap;
+    box-shadow: var(--shadow-lg);
+  }
+  .toast.show { opacity: 1; }
+  .toast.success { background: var(--green); }
+  .toast.error { background: var(--red); }
+  
+  /* ── SOS MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    z-index: 200; display: none; align-items: center; justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal { background: var(--white); border-radius: var(--radius); padding: 28px; width: 100%; max-width: 380px; text-align: center; }
+  .modal h2 { font-size: 24px; font-weight: 800; margin-bottom: 8px; }
+  .modal p { color: var(--slate); font-size: 15px; margin-bottom: 20px; line-height: 1.6; }
+  .modal .btn-danger { width: 100%; padding: 16px; background: var(--red); color: #fff; border: none; border-radius: var(--radius-sm); font-size: 17px; font-weight: 700; cursor: pointer; margin-bottom: 10px; }
+  .modal .btn-cancel { width: 100%; padding: 14px; background: var(--bg); color: var(--slate); border: 2px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; }
+  
+  .hidden { display: none; }
+  
+  /* ── OTP BOX ── */
+  #otp-box { margin-top: 16px; }
+  
+  /* ── Profile indicator ── */
+  .profile-complete { background: var(--saffron-light); border: 2px solid #FFD9B3; border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 16px; font-size: 13px; color: var(--saffron-dark); }
+  
+  /* Scrollbars */
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+  
+  /* Alert badge */
+  .badge { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; background: var(--red); color: #fff; font-size: 11px; font-weight: 700; border-radius: 10px; padding: 0 5px; }
+  
+  /* Section divider */
+  .divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+  /* Appointment card */
+  .appt-card { background: var(--white); border-radius: var(--radius-sm); padding: 14px; box-shadow: var(--shadow); margin-bottom: 10px; display: flex; align-items: center; gap: 12px; }
+  .appt-icon { font-size: 28px; }
+  .appt-title { font-size: 15px; font-weight: 700; color: var(--deep); }
+  .appt-time { font-size: 13px; color: var(--muted); }
+  .appt-badge { margin-left: auto; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .appt-badge.upcoming { background: #EFF6FF; color: #2563EB; }
+  .appt-badge.today { background: #FEF3C7; color: #D97706; }
+
+  #recaptcha-container { margin-top: 12px; }
+</style>
+</head>
+<body>
+
+<!-- SPLASH -->
+<div id="splash" class="screen active">
+  <div class="splash-logo">🤝</div>
+  <div class="splash-name">Saathi</div>
+  <div class="splash-tagline">आपका डिजिटल साथी — Your Digital Companion</div>
+  <div class="splash-loader"></div>
+</div>
+
+<!-- AUTH -->
+<div id="auth" class="screen">
+  <div class="auth-hero">
+    <div class="auth-hero-icon">🤝</div>
+    <h1>Saathi</h1>
+    <p id="auth-hero-sub">India's Senior Life Companion</p>
+  </div>
+  <div class="auth-body">
+    <div class="lang-toggle-row">
+      <button class="lang-btn active" onclick="setLang('en')">English</button>
+      <button class="lang-btn" onclick="setLang('hi')">हिंदी</button>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')" id="tab-login">Sign In</button>
+      <button class="auth-tab" onclick="switchAuthTab('signup')" id="tab-signup">New User</button>
+    </div>
+
+    <div id="login-panel">
+      <div class="field">
+        <label id="lbl-phone">Mobile Number</label>
+        <div class="otp-row">
+          <input type="tel" id="login-phone" placeholder="+91 XXXXX XXXXX" maxlength="13">
+          <button class="btn-sm" onclick="sendOTP('login')" id="send-otp-btn">Send OTP</button>
+        </div>
+      </div>
+      <div id="login-otp-box" class="hidden">
+        <div class="field">
+          <label>Enter OTP</label>
+          <input type="number" id="login-otp" placeholder="6-digit OTP">
+        </div>
+        <button class="btn-primary" onclick="verifyOTP('login')" id="verify-login-btn">Verify &amp; Sign In →</button>
+      </div>
+      <div id="recaptcha-container"></div>
+    </div>
+
+    <div id="signup-panel" class="hidden">
+      <div class="profile-complete">👋 New to Saathi? We'll set up your complete profile in 5 simple steps after verifying your number.</div>
+      <div class="field">
+        <label id="lbl-phone2">Mobile Number</label>
+        <div class="otp-row">
+          <input type="tel" id="signup-phone" placeholder="+91 XXXXX XXXXX" maxlength="13">
+          <button class="btn-sm" onclick="sendOTP('signup')" id="send-otp-btn2">Send OTP</button>
+        </div>
+      </div>
+      <div id="signup-otp-box" class="hidden">
+        <div class="field">
+          <label>Enter OTP</label>
+          <input type="number" id="signup-otp" placeholder="6-digit OTP">
+        </div>
+        <button class="btn-primary" onclick="verifyOTP('signup')">Verify &amp; Continue →</button>
+      </div>
+      <div id="recaptcha-container2"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ONBOARDING -->
+<div id="onboarding" class="screen">
+  <div class="ob-header">
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <div>
+        <div style="font-size:14px; color:var(--muted);" id="ob-step-num">Step 1 of 5</div>
+        <div style="font-size:18px; font-weight:800; color:var(--deep); margin-top:2px;" id="ob-step-name">Personal Details</div>
+      </div>
+      <div style="font-size:28px;">🤝</div>
+    </div>
+    <div class="ob-progress-bar"><div class="ob-progress-fill" id="ob-progress" style="width:20%"></div></div>
+  </div>
+
+  <div class="ob-body" id="ob-body">
+    <!-- Dynamically rendered -->
+  </div>
+
+  <div class="ob-footer">
+    <button class="btn-back" id="ob-back-btn" onclick="obPrev()">← Back</button>
+    <button class="btn-primary" style="flex:1;" id="ob-next-btn" onclick="obNext()">Continue →</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app" class="screen">
+  <div id="tab-home" class="tab-content active">
+    <div class="app-header">
+      <div class="app-header-top">
+        <div>
+          <div class="user-greeting" id="greeting-text">Good Morning 🌞</div>
+          <div class="user-name" id="header-name">Loading...</div>
+        </div>
+        <div class="header-avatar" onclick="showProfile()">👤</div>
+      </div>
+    </div>
+
+    <button class="sos-btn" onclick="showSOSModal()">
+      <div class="sos-pulse"></div>
+      🆘 EMERGENCY SOS
+    </button>
+
+    <div class="section" style="margin-top:20px;">
+      <div class="section-title">Today's Health</div>
+      <div class="stat-row">
+        <div class="stat-card"><div class="stat-icon">💊</div><div class="stat-value" id="med-count">0/0</div><div class="stat-label">Medicines Today</div></div>
+        <div class="stat-card"><div class="stat-icon">❤️</div><div class="stat-value" id="bp-display">--/--</div><div class="stat-label">Blood Pressure</div></div>
+      </div>
+    </div>
+
+    <div class="section" style="margin-top:16px;">
+      <div class="section-title">How are you feeling? <span style="font-size:13px;color:var(--muted);">अभी कैसा लग रहा है?</span></div>
+      <div class="card">
+        <div class="mood-row">
+          <button class="mood-btn" onclick="selectMood(this,'😄')">😄</button>
+          <button class="mood-btn" onclick="selectMood(this,'🙂')">🙂</button>
+          <button class="mood-btn" onclick="selectMood(this,'😐')">😐</button>
+          <button class="mood-btn" onclick="selectMood(this,'😔')">😔</button>
+          <button class="mood-btn" onclick="selectMood(this,'😰')">😰</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" style="margin-top:16px;">
+      <div class="section-title">Medicines <span class="see-all" onclick="switchTab('health')">View All</span></div>
+      <div class="card" id="home-meds-list">
+        <div style="color:var(--muted);text-align:center;padding:20px;">Loading medicines...</div>
+      </div>
+    </div>
+
+    <div class="section" style="margin-top:16px; padding-bottom:20px;">
+      <div class="section-title">Appointments</div>
+      <div id="appt-list">
+        <div style="color:var(--muted);text-align:center;padding:20px;">No appointments added yet</div>
+      </div>
+      <button class="btn-outline" onclick="addAppointment()" style="margin-top:8px;">+ Add Appointment</button>
+    </div>
+  </div>
+
+  <!-- HEALTH TAB -->
+  <div id="tab-health" class="tab-content">
+    <div class="app-header">
+      <div class="user-name">Health Dashboard</div>
+      <div class="user-greeting">स्वास्थ्य रिपोर्ट</div>
+    </div>
+
+    <div class="section" style="margin-top:16px;">
+      <div class="section-title">Vitals</div>
+      <div class="vital-grid" id="vitals-grid">
+        <div class="vital-card"><div class="vital-icon">❤️</div><div class="vital-val" id="v-bp">--</div><div class="vital-unit">mmHg</div><div class="vital-label">Blood Pressure</div><div class="vital-status normal">Normal</div></div>
+        <div class="vital-card"><div class="vital-icon">🩸</div><div class="vital-val" id="v-sugar">--</div><div class="vital-unit">mg/dL</div><div class="vital-label">Blood Sugar</div><div class="vital-status normal">Normal</div></div>
+        <div class="vital-card"><div class="vital-icon">⚖️</div><div class="vital-val" id="v-weight">--</div><div class="vital-unit">kg</div><div class="vital-label">Weight</div><div class="vital-status normal">Healthy</div></div>
+        <div class="vital-card"><div class="vital-icon">🫁</div><div class="vital-val" id="v-spo2">--</div><div class="vital-unit">%</div><div class="vital-label">SpO2</div><div class="vital-status normal">Good</div></div>
+      </div>
+      <div class="log-vital-form" style="margin-top:16px;">
+        <div style="font-size:14px;font-weight:700;color:var(--deep);margin-bottom:10px;">Log Today's Vitals</div>
+        <div class="row" style="margin-bottom:10px;">
+          <input id="inp-bp" placeholder="BP e.g. 120/80" type="text">
+          <input id="inp-sugar" placeholder="Sugar e.g. 110" type="number">
+        </div>
+        <div class="row" style="margin-bottom:10px;">
+          <input id="inp-weight" placeholder="Weight (kg)" type="number">
+          <input id="inp-spo2" placeholder="SpO2 (%)" type="number">
+        </div>
+        <button class="btn-primary" style="padding:12px;" onclick="logVitals()">Save Vitals ✓</button>
+      </div>
+    </div>
+
+    <div class="section" style="margin-top:16px; padding-bottom:20px;">
+      <div class="section-title">All Medicines</div>
+      <div id="health-meds-list"></div>
+    </div>
+  </div>
+
+  <!-- CHAT TAB -->
+  <div id="tab-chat" class="tab-content" style="display:flex;flex-direction:column;min-height:calc(100vh - 80px);">
+    <div class="chat-header">
+      <h2>🤝 Saathi AI</h2>
+      <p id="chat-sub">Your personal health companion</p>
+    </div>
+    <div class="chat-messages" id="chat-messages"></div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" placeholder="Type your message..." onkeydown="if(event.key==='Enter')sendChat()">
+      <button class="send-btn" onclick="sendChat()">➤</button>
+    </div>
+  </div>
+
+  <!-- FAMILY TAB -->
+  <div id="tab-family" class="tab-content">
+    <div class="app-header">
+      <div class="user-name">Family &amp; Emergency</div>
+      <div class="user-greeting">परिवार और आपातकाल</div>
+    </div>
+
+    <div class="section" style="margin-top:16px;">
+      <div class="section-title">Today's Family Update</div>
+      <div class="update-preview" id="family-update-preview">
+        <h4>📱 Auto-update will be sent to your family</h4>
+        <p id="update-preview-text">Loading your daily update...</p>
+        <button class="btn-sm" style="margin-top:10px;" onclick="sendFamilyUpdate()">Send Now 📤</button>
+      </div>
+    </div>
+
+    <div class="section" style="margin-top:8px;">
+      <div class="section-title">Emergency Contacts</div>
+      <div id="family-contacts-list"></div>
+    </div>
+
+    <div class="section" style="margin-top:8px; padding-bottom:20px;">
+      <div class="section-title">Quick Services</div>
+      <div class="card" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <button onclick="aiBookAppointment()" style="padding:14px;border:2px solid var(--border);border-radius:var(--radius-sm);background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:var(--slate);">📅 Book<br>Appointment</button>
+        <button onclick="aiRefillMeds()" style="padding:14px;border:2px solid var(--border);border-radius:var(--radius-sm);background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:var(--slate);">💊 Refill<br>Medicines</button>
+        <button onclick="sendFamilyUpdate()" style="padding:14px;border:2px solid var(--border);border-radius:var(--radius-sm);background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:var(--slate);">📱 Send<br>Update</button>
+        <button onclick="showSOSModal()" style="padding:14px;border:2px solid #FEE2E2;border-radius:var(--radius-sm);background:#FEE2E2;cursor:pointer;font-size:13px;font-weight:700;color:var(--red);">🆘 Emergency<br>SOS</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SOS MODAL -->
+<div class="modal-overlay" id="sos-modal">
+  <div class="modal">
+    <div style="font-size:56px;">🆘</div>
+    <h2 style="color:var(--red);">Emergency SOS</h2>
+    <p id="sos-modal-text">This will immediately send an emergency alert with your location to all family contacts via Email.</p>
+    <button class="btn-danger" onclick="triggerSOS()">📤 Send Emergency Alert NOW</button>
+    <button class="btn-cancel" onclick="closeSOSModal()">Cancel — I'm OK</button>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- TAB BAR -->
+<div class="tab-bar" id="main-tab-bar" style="display:none;">
+  <div class="tab-item active" onclick="switchTab('home')" id="tabbar-home">
+    <div class="tab-icon">🏠</div>
+    <div class="tab-label" id="tbl-home">Home</div>
+  </div>
+  <div class="tab-item" onclick="switchTab('health')" id="tabbar-health">
+    <div class="tab-icon">💊</div>
+    <div class="tab-label" id="tbl-health">Health</div>
+  </div>
+  <div class="tab-item" onclick="switchTab('chat')" id="tabbar-chat">
+    <div class="tab-icon">💬</div>
+    <div class="tab-label" id="tbl-chat">Saathi</div>
+  </div>
+  <div class="tab-item" onclick="switchTab('family')" id="tabbar-family">
+    <div class="tab-icon">👨‍👩‍👧</div>
+    <div class="tab-label" id="tbl-family">Family</div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyAD9NRlAl-3CDrHyaCb26rfsnsKVhv7zbg",
+  authDomain: "saathi-app-2611.firebaseapp.com",
+  projectId: "saathi-app-2611",
+  storageBucket: "saathi-app-2611.firebasestorage.app",
+  messagingSenderId: "891998809087",
+  appId: "1:891998809087:web:78077b0a1ff9e530d3d5ca"
+};
+const EMAILJS_PUBLIC = "MCv-LMlzukwj61y_J";
+const EMAILJS_SERVICE = "service_0r2mzg7";
+const EMAILJS_TEMPLATE = "template_w9vzti7";
+const GEMINI_API_KEY = "AIzaSyAQ.Ab8RN6JMp2UksPH9I60xDb8dMHG9zBaDWshigRvcZ0nDKWIzyg";
+const GEMINI_API = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+firebase.initializeApp(FIREBASE_CONFIG);
+const auth = firebase.auth();
+const db = firebase.firestore();
+emailjs.init(EMAILJS_PUBLIC);
+
+let currentUser = null;
+let userProfile = null;
+let confirmationResult = null;
+let currentLang = 'en';
+let obStep = 1;
+let obData = {
+  personal: {}, health: {}, medicines: [], family: {}, prefs: {}
+};
+let chatHistory = [];
+let medicinesStatus = {};
+
+const T = {
+  en: {
+    greeting_morning: 'Good Morning 🌞',
+    greeting_afternoon: 'Good Afternoon ☀️',
+    greeting_evening: 'Good Evening 🌙',
+    steps: ['Personal Details','Health Profile','Medicines','Family & Emergency','Preferences'],
+    signin: 'Sign In', signup: 'New User',
+    send_otp: 'Send OTP', verify: 'Verify & Sign In →',
+    home: 'Home', health: 'Health', chat: 'Saathi', family: 'Family'
+  },
+  hi: {
+    greeting_morning: 'सुप्रभात 🌞',
+    greeting_afternoon: 'नमस्कार ☀️',
+    greeting_evening: 'शुभ संध्या 🌙',
+    steps: ['व्यक्तिगत विवरण','स्वास्थ्य प्रोफ़ाइल','दवाइयां','परिवार और आपातकाल','प्राथमिकताएं'],
+    signin: 'साइन इन', signup: 'नया उपयोगकर्ता',
+    send_otp: 'OTP भेजें', verify: 'सत्यापित करें →',
+    home: 'होम', health: 'स्वास्थ्य', chat: 'साथी', family: 'परिवार'
+  }
+};
+
+// ═══════════════════════════════════════════════
+// SPLASH → AUTH
+// ═══════════════════════════════════════════════
+setTimeout(() => {
+  auth.onAuthStateChanged(async user => {
+    if (user) {
+      currentUser = user;
+      const doc = await db.collection('users').doc(user.uid).get();
+      if (doc.exists && doc.data().onboardingDone) {
+        userProfile = doc.data();
+        showScreen('app');
+        initApp();
+      } else {
+        showScreen('onboarding');
+        renderObStep();
+      }
+    } else {
+      showScreen('auth');
+    }
+  });
+}, 1800);
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'app') document.getElementById('main-tab-bar').style.display = 'flex';
+  else document.getElementById('main-tab-bar').style.display = 'none';
+}
+
+// ═══════════════════════════════════════════════
+// LANGUAGE
+// ═══════════════════════════════════════════════
+function setLang(lang) {
+  currentLang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function t(key) { return (T[currentLang] && T[currentLang][key]) || T.en[key] || key; }
+
+// ═══════════════════════════════════════════════
+// AUTH TABS
+// ═══════════════════════════════════════════════
+function switchAuthTab(tab) {
+  document.getElementById('login-panel').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('signup-panel').classList.toggle('hidden', tab !== 'signup');
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+}
+
+// ═══════════════════════════════════════════════
+// OTP AUTH
+// ═══════════════════════════════════════════════
+function sendOTP(type) {
+  const phoneInput = type === 'login' ? document.getElementById('login-phone') : document.getElementById('signup-phone');
+  let phone = phoneInput.value.trim();
+  if (!phone) { showToast('Enter mobile number', 'error'); return; }
+  if (!phone.startsWith('+')) phone = '+91' + phone.replace(/\D/g,'');
+  
+  const btnId = type === 'login' ? 'send-otp-btn' : 'send-otp-btn2';
+  const containerId = type === 'login' ? 'recaptcha-container' : 'recaptcha-container2';
+  document.getElementById(btnId).disabled = true;
+  document.getElementById(btnId).textContent = 'Sending...';
+
+  try {
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier(containerId, {
+      size: 'invisible',
+      callback: () => {}
+    });
+    auth.signInWithPhoneNumber(phone, window.recaptchaVerifier).then(result => {
+      confirmationResult = result;
+      document.getElementById(type === 'login' ? 'login-otp-box' : 'signup-otp-box').classList.remove('hidden');
+      document.getElementById(btnId).textContent = 'Resend';
+      document.getElementById(btnId).disabled = false;
+      showToast('OTP sent! ✓', 'success');
+    }).catch(err => {
+      document.getElementById(btnId).textContent = 'Send OTP';
+      document.getElementById(btnId).disabled = false;
+      showToast('Error: ' + err.message, 'error');
+      if (window.recaptchaVerifier) window.recaptchaVerifier.clear();
+    });
+  } catch(e) {
+    document.getElementById(btnId).disabled = false;
+    document.getElementById(btnId).textContent = 'Send OTP';
+    showToast('reCAPTCHA error. Try again.', 'error');
+  }
+}
+
+function verifyOTP(type) {
+  const otpInput = type === 'login' ? document.getElementById('login-otp') : document.getElementById('signup-otp');
+  const code = otpInput.value.trim();
+  if (!code || code.length < 6) { showToast('Enter 6-digit OTP', 'error'); return; }
+  if (!confirmationResult) { showToast('Send OTP first', 'error'); return; }
+  
+  confirmationResult.confirm(code).then(async result => {
+    currentUser = result.user;
+    showToast('Verified! ✓', 'success');
+    const doc = await db.collection('users').doc(currentUser.uid).get();
+    if (doc.exists && doc.data().onboardingDone) {
+      userProfile = doc.data();
+      showScreen('app');
+      initApp();
+    } else {
+      showScreen('onboarding');
+      obStep = 1;
+      renderObStep();
+    }
+  }).catch(() => {
+    showToast('Wrong OTP. Try again.', 'error');
+  });
+}
+
+// ═══════════════════════════════════════════════
+// ONBOARDING
+// ═══════════════════════════════════════════════
+const OB_STEPS = [
+  { name: 'Personal Details', nameHi: 'व्यक्तिगत विवरण' },
+  { name: 'Health Profile', nameHi: 'स्वास्थ्य प्रोफ़ाइल' },
+  { name: 'Medicines', nameHi: 'दवाइयां' },
+  { name: 'Family & Emergency', nameHi: 'परिवार और आपातकाल' },
+  { name: 'Preferences', nameHi: 'प्राथमिकताएं' }
+];
+
+const CONDITIONS = ['Diabetes','Hypertension','Heart Disease','Thyroid','Arthritis','Kidney Issues','Asthma','Other'];
+
+function renderObStep() {
+  const pct = (obStep / 5) * 100;
+  document.getElementById('ob-progress').style.width = pct + '%';
+  document.getElementById('ob-step-num').textContent = `Step ${obStep} of 5`;
+  const s = OB_STEPS[obStep - 1];
+  document.getElementById('ob-step-name').textContent = currentLang === 'hi' ? s.nameHi : s.name;
+  document.getElementById('ob-back-btn').style.display = obStep === 1 ? 'none' : 'block';
+
+  let html = '';
+  if (obStep === 1) {
+    html = `
+      <div class="ob-section-title">Tell us about yourself</div>
+      <div class="ob-section-sub">आपके बारे में बताएं</div>
+      <div class="field"><label>Full Name *</label><input id="f-name" placeholder="e.g. Ramesh Kumar Sharma" value="${obData.personal.name||''}"></div>
+      <div class="row-2">
+        <div class="field"><label>Date of Birth *</label><input id="f-dob" type="date" value="${obData.personal.dob||''}"></div>
+        <div class="field"><label>Gender *</label>
+          <select id="f-gender"><option value="">Select</option><option ${obData.personal.gender==='Male'?'selected':''}>Male</option><option ${obData.personal.gender==='Female'?'selected':''}>Female</option><option ${obData.personal.gender==='Other'?'selected':''}>Other</option></select>
+        </div>
+      </div>
+      <div class="field"><label>Home Address *</label><textarea id="f-address" placeholder="Full address with area, city, PIN">${obData.personal.address||''}</textarea></div>
+      <div class="row-2">
+        <div class="field"><label>Aadhaar Number</label><input id="f-aadhaar" placeholder="XXXX XXXX XXXX" maxlength="14" value="${obData.personal.aadhaar||''}"></div>
+        <div class="field"><label>Language</label>
+          <select id="f-lang"><option value="en" ${obData.personal.lang==='en'?'selected':''}>English</option><option value="hi" ${obData.personal.lang==='hi'?'selected':''}>हिंदी</option><option value="mix" ${obData.personal.lang==='mix'?'selected':''}>Hinglish</option></select>
+        </div>
+      </div>
+    `;
+  } else if (obStep === 2) {
+    html = `
+      <div class="ob-section-title">Health Profile</div>
+      <div class="ob-section-sub">स्वास्थ्य जानकारी</div>
+      <div class="row-2">
+        <div class="field"><label>Blood Group</label>
+          <select id="f-blood"><option value="">Select</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option></select>
+        </div>
+        <div class="field"><label>Height (cm)</label><input id="f-height" type="number" placeholder="e.g. 165" value="${obData.health.height||''}"></div>
+      </div>
+      <div class="row-2">
+        <div class="field"><label>Weight (kg)</label><input id="f-weight" type="number" placeholder="e.g. 70" value="${obData.health.weight||''}"></div>
+        <div class="field"><label>Known Allergies</label><input id="f-allergy" placeholder="e.g. Penicillin" value="${obData.health.allergy||''}"></div>
+      </div>
+      <div class="field"><label>Existing Conditions (select all that apply)</label>
+        <div class="checkbox-grid">${CONDITIONS.map(c=>`<label class="checkbox-item ${(obData.health.conditions||[]).includes(c)?'selected':''}"><input type="checkbox" value="${c}" ${(obData.health.conditions||[]).includes(c)?'checked':''} onchange="toggleCondition(this)"><span>${c}</span></label>`).join('')}</div>
+      </div>
+      <div class="field"><label>Family Doctor Name</label><input id="f-doctor" placeholder="Dr. Name" value="${obData.health.doctor||''}"></div>
+      <div class="field"><label>Doctor's Phone</label><input id="f-doctorphone" type="tel" placeholder="+91 XXXXX XXXXX" value="${obData.health.doctorphone||''}"></div>
+      <div class="field"><label>Nearest Hospital</label><input id="f-hospital" placeholder="Hospital name + address" value="${obData.health.hospital||''}"></div>
+      <div class="field"><label>Health Insurance Number</label><input id="f-insurance" placeholder="Policy number (optional)" value="${obData.health.insurance||''}"></div>
+    `;
+  } else if (obStep === 3) {
+    const meds = obData.medicines;
+    html = `
+      <div class="ob-section-title">Your Medicines</div>
+      <div class="ob-section-sub">रोज़ की दवाइयां — Add all medicines you take daily</div>
+      <div id="med-list">
+        ${meds.length === 0 ? '<div style="color:var(--muted);text-align:center;padding:16px;">No medicines added yet</div>' : meds.map((m,i) => `
+          <div class="medicine-card">
+            <div class="med-name">💊 ${m.name} — ${m.dose}</div>
+            <div class="med-detail">${m.times.join(', ')} • ${m.withfood} food • ${m.refill} pills left</div>
+            <button class="del-btn" onclick="removeMed(${i})">✕ Remove</button>
+          </div>
+        `).join('')}
+      </div>
+      <div class="add-med-form">
+        <div style="font-size:14px;font-weight:700;color:var(--saffron);margin-bottom:10px;">+ Add Medicine</div>
+        <div class="form-row">
+          <input id="mn-name" placeholder="Medicine name *">
+          <input id="mn-dose" placeholder="Dose (e.g. 500mg)">
+        </div>
+        <div class="form-row">
+          <select id="mn-food"><option value="">With/Without food</option><option>Before</option><option>After</option><option>With</option><option>Anytime</option></select>
+          <input id="mn-refill" type="number" placeholder="Pills remaining">
+        </div>
+        <div class="field" style="margin-bottom:10px;"><label>When to take (select times)</label>
+          <div class="time-chips">
+            ${['Morning','Afternoon','Evening','Night','Before Bed'].map(t=>`<div class="time-chip" onclick="toggleChip(this)">${t}</div>`).join('')}
+          </div>
+        </div>
+        <button class="btn-sm" style="width:100%;padding:12px;" onclick="addMedicine()">Add This Medicine ✓</button>
+      </div>
+      <p style="font-size:13px;color:var(--muted);">You can also skip and add medicines later in the Health tab.</p>
+    `;
+  } else if (obStep === 4) {
+    html = `
+      <div class="ob-section-title">Family &amp; Emergency</div>
+      <div class="ob-section-sub">Emergency contacts — इमरजेंसी संपर्क</div>
+      <div style="background:var(--saffron-light);border:2px solid #FFD9B3;border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;font-size:13px;color:var(--saffron-dark);">
+        ⚠️ Primary contact will receive SOS alerts and daily health updates
+      </div>
+      <div style="font-weight:700;font-size:15px;color:var(--deep);margin-bottom:12px;">Primary Contact (SOS will be sent here)</div>
+      <div class="field"><label>Name *</label><input id="f-c1name" placeholder="Son/Daughter name" value="${obData.family.c1name||''}"></div>
+      <div class="row-2">
+        <div class="field"><label>Relation *</label><input id="f-c1rel" placeholder="e.g. Son, Daughter" value="${obData.family.c1rel||''}"></div>
+        <div class="field"><label>Phone *</label><input id="f-c1phone" type="tel" placeholder="+91 XXXXX XXXXX" value="${obData.family.c1phone||''}"></div>
+      </div>
+      <div class="field"><label>Email (for SOS alerts) *</label><input id="f-c1email" type="email" placeholder="family@email.com" value="${obData.family.c1email||''}"></div>
+      
+      <div class="divider"></div>
+      <div style="font-weight:700;font-size:15px;color:var(--deep);margin-bottom:12px;">Secondary Contact</div>
+      <div class="field"><label>Name</label><input id="f-c2name" placeholder="Another family member" value="${obData.family.c2name||''}"></div>
+      <div class="row-2">
+        <div class="field"><label>Relation</label><input id="f-c2rel" placeholder="e.g. Spouse" value="${obData.family.c2rel||''}"></div>
+        <div class="field"><label>Phone</label><input id="f-c2phone" type="tel" placeholder="+91 XXXXX XXXXX" value="${obData.family.c2phone||''}"></div>
+      </div>
+      <div class="field"><label>Email</label><input id="f-c2email" type="email" placeholder="optional" value="${obData.family.c2email||''}"></div>
+      
+      <div class="divider"></div>
+      <div class="field"><label>Neighbour / Local Contact Name</label><input id="f-neighbour" placeholder="Neighbour or local helper" value="${obData.family.neighbour||''}"></div>
+      <div class="field"><label>Neighbour Phone</label><input id="f-neighbourphone" type="tel" placeholder="+91 XXXXX XXXXX" value="${obData.family.neighbourphone||''}"></div>
+    `;
+  } else if (obStep === 5) {
+    html = `
+      <div class="ob-section-title">Almost Done! 🎉</div>
+      <div class="ob-section-sub">Set your preferences</div>
+      <div class="field"><label>Morning Medicine Reminder Time</label><input id="f-morning-time" type="time" value="${obData.prefs.morningtime||'08:00'}"></div>
+      <div class="field"><label>Evening Medicine Reminder Time</label><input id="f-evening-time" type="time" value="${obData.prefs.eveningtime||'20:00'}"></div>
+      <div class="field"><label>Daily family update time</label><input id="f-update-time" type="time" value="${obData.prefs.updatetime||'09:00'}"></div>
+      <div class="field"><label>App Language</label>
+        <select id="f-app-lang">
+          <option value="en" ${obData.prefs.applang==='en'?'selected':''}>English</option>
+          <option value="hi" ${obData.prefs.applang==='hi'?'selected':''}>हिंदी</option>
+          <option value="mix" ${obData.prefs.applang==='mix'?'selected':''}>Hinglish (Mix)</option>
+        </select>
+      </div>
+      <div class="field"><label>Saathi AI Personality</label>
+        <select id="f-ai-style">
+          <option value="friendly">Friendly &amp; Warm (like a friend)</option>
+          <option value="formal">Formal &amp; Professional</option>
+          <option value="caring">Caring &amp; Gentle (like family)</option>
+        </select>
+      </div>
+      <div class="field"><label>Create 4-digit PIN for app lock</label><input id="f-pin" type="password" placeholder="4-digit PIN" maxlength="4" inputmode="numeric"></div>
+      <div class="field"><label>Confirm PIN</label><input id="f-pin2" type="password" placeholder="Confirm PIN" maxlength="4" inputmode="numeric"></div>
+      <div style="background:#DCFCE7;border:2px solid #86EFAC;border-radius:var(--radius-sm);padding:12px;font-size:13px;color:#166534;margin-top:4px;">
+        ✅ All set! Tap "Complete Setup" to start using Saathi.
+      </div>
+    `;
+  }
+  document.getElementById('ob-body').innerHTML = html;
+  if (obStep === 5) document.getElementById('ob-next-btn').textContent = 'Complete Setup 🎉';
+  else document.getElementById('ob-next-btn').textContent = 'Continue →';
+}
+
+function toggleCondition(el) {
+  const val = el.value;
+  if (!obData.health.conditions) obData.health.conditions = [];
+  if (el.checked) obData.health.conditions.push(val);
+  else obData.health.conditions = obData.health.conditions.filter(c => c !== val);
+  el.closest('.checkbox-item').classList.toggle('selected', el.checked);
+}
+
+function toggleChip(el) { el.classList.toggle('selected'); }
+
+function addMedicine() {
+  const name = document.getElementById('mn-name').value.trim();
+  const dose = document.getElementById('mn-dose').value.trim();
+  const food = document.getElementById('mn-food').value;
+  const refill = document.getElementById('mn-refill').value;
+  const times = Array.from(document.querySelectorAll('.time-chip.selected')).map(c => c.textContent);
+  if (!name) { showToast('Enter medicine name', 'error'); return; }
+  if (times.length === 0) { showToast('Select at least one time', 'error'); return; }
+  obData.medicines.push({ name, dose: dose||'1 tablet', withfood: food||'Anytime', refill: refill||'30', times, status: {} });
+  renderObStep();
+}
+
+function removeMed(i) {
+  obData.medicines.splice(i, 1);
+  renderObStep();
+}
+
+function obPrev() {
+  if (obStep > 1) { obStep--; renderObStep(); }
+}
+
+async function obNext() {
+  if (obStep === 1) {
+    const name = document.getElementById('f-name').value.trim();
+    const dob = document.getElementById('f-dob').value;
+    const gender = document.getElementById('f-gender').value;
+    const address = document.getElementById('f-address').value.trim();
+    if (!name || !dob || !gender || !address) { showToast('Fill all required fields *', 'error'); return; }
+    obData.personal = { name, dob, gender, address, aadhaar: document.getElementById('f-aadhaar').value, lang: document.getElementById('f-lang').value };
+  } else if (obStep === 2) {
+    obData.health = {
+      ...obData.health,
+      blood: document.getElementById('f-blood').value,
+      height: document.getElementById('f-height').value,
+      weight: document.getElementById('f-weight').value,
+      allergy: document.getElementById('f-allergy').value,
+      doctor: document.getElementById('f-doctor').value,
+      doctorphone: document.getElementById('f-doctorphone').value,
+      hospital: document.getElementById('f-hospital').value,
+      insurance: document.getElementById('f-insurance').value
+    };
+  } else if (obStep === 3) {
+    // medicines stored live — no validation needed
+  } else if (obStep === 4) {
+    const c1name = document.getElementById('f-c1name').value.trim();
+    const c1rel = document.getElementById('f-c1rel').value.trim();
+    const c1phone = document.getElementById('f-c1phone').value.trim();
+    const c1email = document.getElementById('f-c1email').value.trim();
+    if (!c1name || !c1rel || !c1phone || !c1email) { showToast('Primary contact details required', 'error'); return; }
+    obData.family = {
+      c1name, c1rel, c1phone, c1email,
+      c2name: document.getElementById('f-c2name').value,
+      c2rel: document.getElementById('f-c2rel').value,
+      c2phone: document.getElementById('f-c2phone').value,
+      c2email: document.getElementById('f-c2email').value,
+      neighbour: document.getElementById('f-neighbour').value,
+      neighbourphone: document.getElementById('f-neighbourphone').value
+    };
+  } else if (obStep === 5) {
+    const pin = document.getElementById('f-pin').value;
+    const pin2 = document.getElementById('f-pin2').value;
+    if (pin && pin !== pin2) { showToast('PINs do not match', 'error'); return; }
+    if (pin && pin.length !== 4) { showToast('PIN must be 4 digits', 'error'); return; }
+    obData.prefs = {
+      morningtime: document.getElementById('f-morning-time').value,
+      eveningtime: document.getElementById('f-evening-time').value,
+      updatetime: document.getElementById('f-update-time').value,
+      applang: document.getElementById('f-app-lang').value,
+      aiStyle: document.getElementById('f-ai-style').value,
+      pin
+    };
+    await saveProfile();
+    return;
+  }
+  obStep++;
+  renderObStep();
+}
+
+async function saveProfile() {
+  const btn = document.getElementById('ob-next-btn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  try {
+    const profile = { ...obData.personal, health: obData.health, medicines: obData.medicines, family: obData.family, prefs: obData.prefs, onboardingDone: true, uid: currentUser.uid, createdAt: new Date().toISOString() };
+    await db.collection('users').doc(currentUser.uid).set(profile);
+    userProfile = profile;
+    showScreen('app');
+    initApp();
+    showToast('Welcome to Saathi! 🎉', 'success');
+  } catch(e) {
+    btn.disabled = false; btn.textContent = 'Complete Setup 🎉';
+    showToast('Error saving. Try again.', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// MAIN APP INIT
+// ═══════════════════════════════════════════════
+function initApp() {
+  updateGreeting();
+  loadHomeMeds();
+  loadFamilyContacts();
+  loadFamilyUpdate();
+  loadVitals();
+  initChat();
+  applyLang();
+}
+
+function updateGreeting() {
+  const h = new Date().getHours();
+  const key = h < 12 ? 'greeting_morning' : h < 17 ? 'greeting_afternoon' : 'greeting_evening';
+  document.getElementById('greeting-text').textContent = t(key);
+  const name = userProfile?.name || 'User';
+  document.getElementById('header-name').textContent = name;
+  document.getElementById('chat-sub').textContent = `Namaste, ${name.split(' ')[0]} ji 🙏`;
+}
+
+function applyLang() {
+  const lang = userProfile?.prefs?.applang || 'en';
+  currentLang = lang === 'mix' ? 'en' : lang;
+  document.getElementById('tbl-home').textContent = t('home');
+  document.getElementById('tbl-health').textContent = t('health');
+  document.getElementById('tbl-chat').textContent = t('chat');
+  document.getElementById('tbl-family').textContent = t('family');
+}
+
+// ═══════════════════════════════════════════════
+// MEDICINES
+// ═══════════════════════════════════════════════
+function loadHomeMeds() {
+  const meds = userProfile?.medicines || [];
+  const today = new Date().toDateString();
+  let takenCount = 0;
+  let html = '';
+
+  if (meds.length === 0) {
+    html = '<div style="color:var(--muted);text-align:center;padding:16px;">No medicines added<br><small>Add in Health tab</small></div>';
+  } else {
+    meds.forEach((m, i) => {
+      const statusKey = today + '_' + i;
+      const taken = medicinesStatus[statusKey] || false;
+      const hour = new Date().getHours();
+      const isThisTime = (m.times.includes('Morning') && hour < 12) || (m.times.includes('Afternoon') && hour >= 12 && hour < 17) || (m.times.includes('Evening') && hour >= 17 && hour < 20) || (m.times.includes('Night') && hour >= 20);
+      if (taken) takenCount++;
+      html += `<div class="med-item">
+        <div class="med-dot ${taken ? 'taken' : (isThisTime ? 'pending' : '')}"></div>
+        <div class="med-info"><div class="med-name">${m.name} ${m.dose}</div><div class="med-time">${m.times.join(' • ')}</div></div>
+        ${taken ? '<div class="med-action taken-lbl">✓ Taken</div>' : `<button class="med-action take" onclick="takeMedicine(${i})">Take</button>`}
+      </div>`;
+    });
+  }
+  document.getElementById('home-meds-list').innerHTML = html;
+  document.getElementById('med-count').textContent = takenCount + '/' + meds.length;
+  renderHealthMeds();
+}
+
+function takeMedicine(i) {
+  const today = new Date().toDateString();
+  medicinesStatus[today + '_' + i] = true;
+  loadHomeMeds();
+  showToast('Medicine marked as taken ✓', 'success');
+  saveMedicineStatus();
+}
+
+async function saveMedicineStatus() {
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ medicineStatus: medicinesStatus });
+  } catch(e) {}
+}
+
+function renderHealthMeds() {
+  const meds = userProfile?.medicines || [];
+  const el = document.getElementById('health-meds-list');
+  if (!el) return;
+  if (meds.length === 0) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:20px;">No medicines added yet</div>'; return; }
+  el.innerHTML = meds.map((m, i) => `
+    <div class="medicine-card">
+      <div class="med-name">💊 ${m.name} — ${m.dose}</div>
+      <div class="med-detail">${m.times.join(', ')} • ${m.withfood} food</div>
+      <div style="margin-top:8px;display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:13px;color:${parseInt(m.refill)<5?'var(--red)':'var(--green)'};">${m.refill} pills left ${parseInt(m.refill)<5?'⚠️ Refill soon':''}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════
+// VITALS
+// ═══════════════════════════════════════════════
+async function loadVitals() {
+  try {
+    const doc = await db.collection('vitals').doc(currentUser.uid).get();
+    if (doc.exists) {
+      const v = doc.data();
+      setVital('v-bp', v.bp || '--'); setVital('v-sugar', v.sugar || '--');
+      setVital('v-weight', v.weight || '--'); setVital('v-spo2', v.spo2 || '--');
+      document.getElementById('bp-display').textContent = v.bp || '--/--';
+    }
+  } catch(e) {}
+}
+
+function setVital(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = val;
+}
+
+async function logVitals() {
+  const bp = document.getElementById('inp-bp').value;
+  const sugar = document.getElementById('inp-sugar').value;
+  const weight = document.getElementById('inp-weight').value;
+  const spo2 = document.getElementById('inp-spo2').value;
+  if (!bp && !sugar && !weight && !spo2) { showToast('Enter at least one vital', 'error'); return; }
+  try {
+    const data = { bp, sugar, weight, spo2, loggedAt: new Date().toISOString() };
+    await db.collection('vitals').doc(currentUser.uid).set(data);
+    if (bp) { document.getElementById('v-bp').textContent = bp; document.getElementById('bp-display').textContent = bp; }
+    if (sugar) document.getElementById('v-sugar').textContent = sugar;
+    if (weight) document.getElementById('v-weight').textContent = weight;
+    if (spo2) document.getElementById('v-spo2').textContent = spo2;
+    showToast('Vitals saved ✓', 'success');
+  } catch(e) { showToast('Error saving vitals', 'error'); }
+}
+
+// ═══════════════════════════════════════════════
+// MOOD
+// ═══════════════════════════════════════════════
+function selectMood(el, emoji) {
+  document.querySelectorAll('.mood-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  showToast('Mood noted: ' + emoji, 'success');
+  db.collection('moods').doc(currentUser.uid).set({ mood: emoji, date: new Date().toISOString() }).catch(()=>{});
+}
+
+// ═══════════════════════════════════════════════
+// FAMILY
+// ═══════════════════════════════════════════════
+function loadFamilyContacts() {
+  const f = userProfile?.family;
+  if (!f) return;
+  const el = document.getElementById('family-contacts-list');
+  let html = '';
+  if (f.c1name) html += familyCard(f.c1name, f.c1rel, f.c1phone, '👨');
+  if (f.c2name) html += familyCard(f.c2name, f.c2rel, f.c2phone, '👩');
+  if (f.neighbour) html += familyCard(f.neighbour, 'Neighbour', f.neighbourphone, '🏘️');
+  if (!f.c1name) html = '<div style="color:var(--muted);text-align:center;padding:20px;">No contacts added</div>';
+  el.innerHTML = html;
+}
+
+function familyCard(name, relation, phone, emoji) {
+  return `<div class="family-card">
+    <div class="family-avatar">${emoji}</div>
+    <div><div class="family-name">${name}</div><div class="family-relation">${relation} • ${phone}</div></div>
+    <div class="family-actions">
+      <button class="icon-btn call" onclick="window.location='tel:${phone}'">📞</button>
+      <button class="icon-btn msg" onclick="window.location='sms:${phone}'">💬</button>
+    </div>
+  </div>`;
+}
+
+function loadFamilyUpdate() {
+  const p = userProfile;
+  if (!p) return;
+  const meds = p.medicines || [];
+  const today = new Date().toDateString();
+  const takenCount = meds.filter((m, i) => medicinesStatus[today + '_' + i]).length;
+  const name = p.name || 'your family member';
+  const text = `Hi! This is an auto-update from Saathi App.\n\n${name} is doing well today. 🙂\n✅ Medicines taken: ${takenCount}/${meds.length}\n📍 Last active: just now\n\nHave a great day!`;
+  const el = document.getElementById('update-preview-text');
+  if (el) el.textContent = text;
+}
+
+async function sendFamilyUpdate() {
+  const email = userProfile?.family?.c1email;
+  if (!email) { showToast('No family email found', 'error'); return; }
+  const name = userProfile?.name || 'Senior';
+  const meds = userProfile?.medicines || [];
+  const today = new Date().toDateString();
+  const taken = meds.filter((m, i) => medicinesStatus[today + '_' + i]).length;
+  try {
+    await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+      to_email: email, to_name: userProfile?.family?.c1name || 'Family',
+      senior_name: name, senior_age: getAge(userProfile?.dob),
+      senior_address: userProfile?.address || 'N/A', senior_phone: currentUser?.phoneNumber || 'N/A',
+      message: `Daily health update: ${taken}/${meds.length} medicines taken today. All is well!`,
+      location: 'Home', time: new Date().toLocaleString('en-IN'), name: 'Saathi App'
+    });
+    showToast('Update sent to family ✓', 'success');
+  } catch(e) { showToast('Could not send update', 'error'); }
+}
+
+// ═══════════════════════════════════════════════
+// SOS
+// ═══════════════════════════════════════════════
+function showSOSModal() { document.getElementById('sos-modal').classList.add('show'); }
+function closeSOSModal() { document.getElementById('sos-modal').classList.remove('show'); }
+
+async function triggerSOS() {
+  closeSOSModal();
+  showToast('🆘 Sending emergency alert...', 'error');
+  const email = userProfile?.family?.c1email;
+  if (!email) { showToast('No emergency email found!', 'error'); return; }
+  
+  let location = 'Location unavailable';
+  try {
+    const pos = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, {timeout:5000}));
+    location = `https://maps.google.com/?q=${pos.coords.latitude},${pos.coords.longitude}`;
+  } catch(e) { location = userProfile?.address || 'Address on file'; }
+
+  try {
+    await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+      to_email: email, to_name: userProfile?.family?.c1name || 'Family',
+      senior_name: userProfile?.name || 'Senior', senior_age: getAge(userProfile?.dob),
+      senior_address: userProfile?.address || 'N/A', senior_phone: currentUser?.phoneNumber || 'N/A',
+      message: '🆘 EMERGENCY! I need immediate help. Please call or come home now!',
+      location, time: new Date().toLocaleString('en-IN'), name: 'Saathi App - EMERGENCY'
+    });
+    // Also send to contact 2 if available
+    const email2 = userProfile?.family?.c2email;
+    if (email2) {
+      await emailjs.send(EMAILJS_SERVICE, EMAILJS_TEMPLATE, {
+        to_email: email2, to_name: userProfile?.family?.c2name || 'Family',
+        senior_name: userProfile?.name || 'Senior', senior_age: getAge(userProfile?.dob),
+        senior_address: userProfile?.address || 'N/A', senior_phone: currentUser?.phoneNumber || 'N/A',
+        message: '🆘 EMERGENCY! I need immediate help!',
+        location, time: new Date().toLocaleString('en-IN'), name: 'Saathi App - EMERGENCY'
+      });
+    }
+    showToast('🆘 Emergency alert sent!', 'success');
+    db.collection('sos').add({ uid: currentUser.uid, time: new Date().toISOString(), location }).catch(()=>{});
+  } catch(e) { showToast('Alert failed. Call family directly!', 'error'); }
+}
+
+// ═══════════════════════════════════════════════
+// APPOINTMENTS
+// ═══════════════════════════════════════════════
+function addAppointment() {
+  const title = prompt('Doctor / Hospital name:');
+  if (!title) return;
+  const date = prompt('Date & Time (e.g. 28 June 2025, 10:30 AM):');
+  if (!date) return;
+  const appts = userProfile.appointments || [];
+  appts.push({ title, date, id: Date.now() });
+  userProfile.appointments = appts;
+  db.collection('users').doc(currentUser.uid).update({ appointments: appts });
+  renderAppointments();
+}
+
+function renderAppointments() {
+  const appts = userProfile?.appointments || [];
+  const el = document.getElementById('appt-list');
+  if (!el) return;
+  if (appts.length === 0) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px;">No appointments yet</div>'; return; }
+  el.innerHTML = appts.map(a => `
+    <div class="appt-card">
+      <div class="appt-icon">🏥</div>
+      <div><div class="appt-title">${a.title}</div><div class="appt-time">${a.date}</div></div>
+      <div class="appt-badge upcoming">Upcoming</div>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════
+// CHAT — Claude AI
+// ═══════════════════════════════════════════════
+function initChat() {
+  const name = userProfile?.name?.split(' ')[0] || 'ji';
+  addAIMessage(`Namaste ${name} ji! 🙏 Main aapka Saathi hoon — aapka digital saathi. Aaj kaise hain aap? I can help you with your medicines, health questions, appointments, or just have a friendly chat. 😊`);
+}
+
+function addAIMessage(text) {
+  const el = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg ai';
+  div.innerHTML = text.replace(/\n/g, '<br>');
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+  chatHistory.push({ role: 'assistant', content: text });
+}
+
+function addUserMessage(text) {
+  const el = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'msg user';
+  div.textContent = text;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+  chatHistory.push({ role: 'user', content: text });
+}
+
+function showTyping() {
+  const el = document.getElementById('chat-messages');
+  const div = document.createElement('div');
+  div.className = 'typing-indicator'; div.id = 'typing';
+  div.innerHTML = '<div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>';
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function removeTyping() {
+  const el = document.getElementById('typing');
+  if (el) el.remove();
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  addUserMessage(text);
+  showTyping();
+
+  const p = userProfile;
+  const systemPrompt = `You are Saathi, a warm and caring AI companion for senior citizens in India. You speak in Hinglish (mix of Hindi and English) — friendly, simple, and caring like a family member. Keep replies SHORT (2-4 sentences max). Never use complex medical jargon. Always be encouraging and positive.
+
+User profile: Name: ${p?.name}, Age: ${getAge(p?.dob)} years, Conditions: ${p?.health?.conditions?.join(', ')||'None mentioned'}, Medicines: ${p?.medicines?.map(m=>m.name).join(', ')||'None added'}, Doctor: ${p?.health?.doctor||'Not mentioned'}.
+
+If they ask about medicines or health, give simple helpful advice but always say "please consult your doctor" for serious issues. If they seem sad or lonely, be extra warm and comforting.`;
+
+  // Build Gemini conversation history
+  const contents = [];
+  // Add history (last 8 messages)
+  const history = chatHistory.slice(-8);
+  history.forEach(msg => {
+    contents.push({ role: msg.role === 'assistant' ? 'model' : 'user', parts: [{ text: msg.content }] });
+  });
+
+  try {
+    const response = await fetch(GEMINI_API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents,
+        generationConfig: { maxOutputTokens: 300, temperature: 0.8 }
+      })
+    });
+    const data = await response.json();
+    removeTyping();
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Sorry, I could not understand. Please try again.';
+    addAIMessage(reply);
+  } catch(e) {
+    removeTyping();
+    addAIMessage('Sorry, I\'m having trouble connecting. Please check your internet and try again. 🙏');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// QUICK SERVICES
+// ═══════════════════════════════════════════════
+function aiBookAppointment() {
+  switchTab('chat');
+  setTimeout(() => {
+    document.getElementById('chat-input').value = 'Mujhe doctor ka appointment book karna hai';
+    sendChat();
+  }, 300);
+}
+
+function aiRefillMeds() {
+  switchTab('chat');
+  setTimeout(() => {
+    document.getElementById('chat-input').value = 'Meri dawai khatam ho rahi hai, kya karna chahiye?';
+    sendChat();
+  }, 300);
+}
+
+// ═══════════════════════════════════════════════
+// TAB SWITCHING
+// ═══════════════════════════════════════════════
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(c => { c.classList.remove('active'); c.style.display = 'none'; });
+  document.querySelectorAll('.tab-item').forEach(t => t.classList.remove('active'));
+  const content = document.getElementById('tab-' + tab);
+  if (content) { content.classList.add('active'); content.style.display = tab === 'chat' ? 'flex' : 'block'; }
+  const tabbar = document.getElementById('tabbar-' + tab);
+  if (tabbar) tabbar.classList.add('active');
+  if (tab === 'home') { loadHomeMeds(); renderAppointments(); }
+  if (tab === 'health') { loadVitals(); renderHealthMeds(); }
+  if (tab === 'family') { loadFamilyUpdate(); }
+}
+
+// ═══════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════
+function getAge(dob) {
+  if (!dob) return 'N/A';
+  const diff = Date.now() - new Date(dob).getTime();
+  return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+}
+
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(() => t.className = 'toast', 3000);
+}
+
+function showProfile() {
+  const p = userProfile;
+  if (!p) return;
+  showToast(`${p.name} • ${getAge(p.dob)} yrs • ${p.health?.blood || 'Blood N/A'}`);
+}
+</script>
+</body>
+</html>
