@@ -618,7 +618,7 @@ const FIREBASE_CONFIG = {
 const EMAILJS_PUBLIC = "MCv-LMlzukwj61y_J";
 const EMAILJS_SERVICE = "service_0r2mzg7";
 const EMAILJS_TEMPLATE = "template_w9vzti7";
-const GEMINI_API_KEY = "AIzaSyAQ.Ab8RN6JMp2UksPH9I60xDb8dMHG9zBaDWshigRvcZ0nDKWIzyg";
+const GEMINI_API_KEY = "AQ.Ab8RN6JMp2UksPH9l60xDb8dMHG9zBaDWshigRvcZ0nDKWlzyg";
 const GEMINI_API = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 // ═══════════════════════════════════════════════
@@ -974,19 +974,23 @@ async function obNext() {
     if (!name || !dob || !gender || !address) { showToast('Fill all required fields *', 'error'); return; }
     obData.personal = { name, dob, gender, address, aadhaar: document.getElementById('f-aadhaar').value, lang: document.getElementById('f-lang').value };
   } else if (obStep === 2) {
+    const blood = document.getElementById('f-blood').value;
+    const height = document.getElementById('f-height').value;
+    const weight = document.getElementById('f-weight').value;
+    const doctor = document.getElementById('f-doctor').value.trim();
+    const doctorphone = document.getElementById('f-doctorphone').value.trim();
+    const hospital = document.getElementById('f-hospital').value.trim();
+    if (!blood || !height || !weight || !doctor || !doctorphone || !hospital) {
+      showToast('Fill all required health fields *', 'error'); return;
+    }
     obData.health = {
-      ...obData.health,
-      blood: document.getElementById('f-blood').value,
-      height: document.getElementById('f-height').value,
-      weight: document.getElementById('f-weight').value,
+      ...obData.health, blood, height, weight,
       allergy: document.getElementById('f-allergy').value,
-      doctor: document.getElementById('f-doctor').value,
-      doctorphone: document.getElementById('f-doctorphone').value,
-      hospital: document.getElementById('f-hospital').value,
+      doctor, doctorphone, hospital,
       insurance: document.getElementById('f-insurance').value
     };
   } else if (obStep === 3) {
-    // medicines stored live — no validation needed
+    // medicines optional — no validation needed
   } else if (obStep === 4) {
     const c1name = document.getElementById('f-c1name').value.trim();
     const c1rel = document.getElementById('f-c1rel').value.trim();
@@ -1005,8 +1009,8 @@ async function obNext() {
   } else if (obStep === 5) {
     const pin = document.getElementById('f-pin').value;
     const pin2 = document.getElementById('f-pin2').value;
-    if (pin && pin !== pin2) { showToast('PINs do not match', 'error'); return; }
-    if (pin && pin.length !== 4) { showToast('PIN must be 4 digits', 'error'); return; }
+    if (!pin || pin.length !== 4) { showToast('Enter a 4-digit PIN', 'error'); return; }
+    if (pin !== pin2) { showToast('PINs do not match', 'error'); return; }
     obData.prefs = {
       morningtime: document.getElementById('f-morning-time').value,
       eveningtime: document.getElementById('f-evening-time').value,
