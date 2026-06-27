@@ -615,11 +615,11 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "891998809087",
   appId: "1:891998809087:web:78077b0a1ff9e530d3d5ca"
 };
-const EMAILJS_PUBLIC = "MCv-LMlzukwj61y_J";
-const EMAILJS_SERVICE = "service_0r2mzg7";
-const EMAILJS_TEMPLATE = "template_w9vzti7";
-const GEMINI_API_KEY = "AQ.Ab8RN6JMp2UksPH9l60xDb8dMHG9zBaDWshigRvcZ0nDKWlzyg";
-const GEMINI_API = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+const EMAILJS_PUBLIC = "ZF9AId6SHJ3tOkzY3";
+const EMAILJS_SERVICE = "service_f37qey4";
+const EMAILJS_TEMPLATE = "template_cma6yvb";
+const GEMINI_API_KEY = "AQ.Ab8RN6J6i5VhG8qMI1sVSVCCLsgGRJjS98HL08cdF_qGUb6N5A";
+const GEMINI_API = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent`;
 
 // ═══════════════════════════════════════════════
 // INIT
@@ -1376,7 +1376,7 @@ If they ask about medicines or health, give simple helpful advice but always say
   try {
     const response = await fetch(GEMINI_API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-goog-api-key': GEMINI_API_KEY },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents,
