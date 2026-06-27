@@ -1380,7 +1380,7 @@ If they ask about medicines or health, give simple helpful advice but always say
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemPrompt }] },
         contents,
-        generationConfig: { maxOutputTokens: 300, temperature: 0.8 }
+        generationConfig: { maxOutputTokens: 1000, temperature: 0.8 }
       })
     });
     const data = await response.json();
