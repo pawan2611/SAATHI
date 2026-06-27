@@ -369,41 +369,43 @@
       <button class="auth-tab" onclick="switchAuthTab('signup')" id="tab-signup">New User</button>
     </div>
 
+    <!-- LOGIN -->
     <div id="login-panel">
       <div class="field">
-        <label id="lbl-phone">Mobile Number</label>
-        <div class="otp-row">
-          <div style="display:flex;align-items:center;border:2px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;flex:1;"><span style="padding:14px 10px;background:#f1f5f9;font-weight:700;font-size:15px;color:var(--slate);border-right:2px solid var(--border);">🇮🇳 +91</span><input type="tel" id="login-phone" placeholder="9876543210" maxlength="10" style="border:none;border-radius:0;flex:1;outline:none;padding:14px 12px;font-size:15px;"></div>
-          <button class="btn-sm" onclick="sendOTP('login')" id="send-otp-btn">Send OTP</button>
-        </div>
+        <label>Email Address</label>
+        <input type="email" id="login-email" placeholder="yourname@gmail.com">
       </div>
-      <div id="login-otp-box" class="hidden">
-        <div class="field">
-          <label>Enter OTP</label>
-          <input type="number" id="login-otp" placeholder="6-digit OTP">
-        </div>
-        <button class="btn-primary" onclick="verifyOTP('login')" id="verify-login-btn">Verify &amp; Sign In →</button>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="login-password" placeholder="Your password">
       </div>
-      <div id="recaptcha-container"></div>
+      <button class="btn-primary" onclick="doLogin()" style="margin-bottom:12px;">Sign In →</button>
+      <div style="text-align:center;font-size:13px;color:var(--muted);">Forgot password? <span style="color:var(--saffron);cursor:pointer;font-weight:600;" onclick="doForgotPassword()">Reset here</span></div>
     </div>
 
+    <!-- SIGNUP -->
     <div id="signup-panel" class="hidden">
-      <div class="profile-complete">👋 New to Saathi? We'll set up your complete profile in 5 simple steps after verifying your number.</div>
+      <div class="profile-complete">👋 New to Saathi? Create your account — then set up your health profile in 5 steps.</div>
       <div class="field">
-        <label id="lbl-phone2">Mobile Number</label>
-        <div class="otp-row">
-          <div style="display:flex;align-items:center;border:2px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;flex:1;"><span style="padding:14px 10px;background:#f1f5f9;font-weight:700;font-size:15px;color:var(--slate);border-right:2px solid var(--border);">🇮🇳 +91</span><input type="tel" id="signup-phone" placeholder="9876543210" maxlength="10" style="border:none;border-radius:0;flex:1;outline:none;padding:14px 12px;font-size:15px;"></div>
-          <button class="btn-sm" onclick="sendOTP('signup')" id="send-otp-btn2">Send OTP</button>
+        <label>Email Address *</label>
+        <input type="email" id="signup-email" placeholder="yourname@gmail.com">
+      </div>
+      <div class="field">
+        <label>Mobile Number * (for SOS alerts)</label>
+        <div style="display:flex;align-items:center;border:2px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+          <span style="padding:14px 10px;background:#f1f5f9;font-weight:700;font-size:15px;color:var(--slate);border-right:2px solid var(--border);">🇮🇳 +91</span>
+          <input type="tel" id="signup-phone" placeholder="9876543210" maxlength="10" style="border:none;border-radius:0;flex:1;outline:none;padding:14px 12px;font-size:15px;">
         </div>
       </div>
-      <div id="signup-otp-box" class="hidden">
-        <div class="field">
-          <label>Enter OTP</label>
-          <input type="number" id="signup-otp" placeholder="6-digit OTP">
-        </div>
-        <button class="btn-primary" onclick="verifyOTP('signup')">Verify &amp; Continue →</button>
+      <div class="field">
+        <label>Create Password *</label>
+        <input type="password" id="signup-password" placeholder="Minimum 6 characters">
       </div>
-      <div id="recaptcha-container2"></div>
+      <div class="field">
+        <label>Confirm Password *</label>
+        <input type="password" id="signup-password2" placeholder="Repeat password">
+      </div>
+      <button class="btn-primary" onclick="doSignup()">Create Account &amp; Continue →</button>
     </div>
   </div>
 </div>
