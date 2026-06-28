@@ -1,5 +1,5 @@
-# Android APK - don't push binaries
-*.apk
+# # Android APK - don't push binaries
+# *.apk
 
 # App icons / images (optional, keep if you want them in repo)
 *.png
@@ -10,3 +10,7 @@ Thumbs.db
 
 # VS Code
 .vscode/
+
+*.txt
+*.pub
+*.mp4demo-Vid.mp4
