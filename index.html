@@ -1782,7 +1782,7 @@ If they ask about medicines or health, give simple helpful advice but always say
     const data = await response.json();
     removeTyping();
     if (data.error) {
-      addAIMessage('Sorry, I am having trouble connecting. Please try again. 🙏');
+      addAIMessage('Saathi abhi bahut busy hai 🙏 Thodi der mein dobara try karein. Tap करें retry ke liye 👇\n\n[Gemini servers overloaded — temporary issue]');
       return;
     }
     const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
