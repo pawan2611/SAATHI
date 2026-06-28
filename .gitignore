@@ -1,0 +1,12 @@
+# Android APK - don't push binaries
+*.apk
+
+# App icons / images (optional, keep if you want them in repo)
+*.png
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Saathi — Senior Life Companion</title>
-
+<meta name="permissions-policy" content="microphone=*, speaker=*">
 <!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
@@ -46,6 +46,8 @@
     position: relative;
     overflow-x: hidden;
   }
+
+  .modal .btn-cancel { width: 100%; padding: 14px; background: var(--bg); color: var(--slate); border: 2px solid var(--border); border-radius: var(--radius-sm); font-size: 15px; font-weight: 600; cursor: pointer; }
 
   /* ── SCREENS ── */
   .screen { display: none; min-height: 100vh; flex-direction: column; }
@@ -119,6 +121,19 @@
     border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; white-space: nowrap;
   }
   
+  #pin-lock {
+  display: none; position: fixed; inset: 0; background: linear-gradient(160deg, #FF6B00, #FF8C00);
+  z-index: 500; flex-direction: column; align-items: center; justify-content: center; gap: 20px;
+}
+#pin-lock.show { display: flex; }
+.pin-dots { display: flex; gap: 16px; }
+.pin-dot { width: 18px; height: 18px; border-radius: 50%; background: rgba(255,255,255,0.3); transition: background 0.2s; }
+.pin-dot.filled { background: #fff; }
+.pin-pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 8px; }
+.pin-key { width: 72px; height: 72px; border-radius: 50%; background: rgba(255,255,255,0.15); border: none; color: #fff; font-size: 22px; font-weight: 700; cursor: pointer; transition: background 0.15s; }
+.pin-key:active { background: rgba(255,255,255,0.35); }
+.pin-key.del { font-size: 18px; }
+
   /* ── ONBOARDING ── */
   #onboarding { background: var(--bg); }
   .ob-header {
@@ -202,6 +217,13 @@
     box-shadow: 0 4px 20px rgba(239,68,68,0.4); letter-spacing: 0.5px;
     position: relative; z-index: 1;
   }
+  .offline-banner {
+    display: none; position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+    width: 100%; max-width: 430px; background: #1A1A2E; color: #fff;
+    padding: 10px 16px; font-size: 13px; font-weight: 600; z-index: 999;
+    text-align: center;
+  }
+  .offline-banner.show { display: block; }
   .sos-btn:active { transform: scale(0.97); }
   .sos-pulse { width: 16px; height: 16px; background: #fff; border-radius: 50%; animation: pulse 1.5s ease-in-out infinite; }
   @keyframes pulse { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.4);opacity:0.6} }
@@ -257,7 +279,7 @@
   .chat-header h2 { color: #fff; font-size: 20px; font-weight: 800; }
   .chat-header p { color: rgba(255,255,255,0.8); font-size: 13px; margin-top: 2px; }
   
-  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 300px; max-height: 55vh; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
   .msg { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; }
   .msg.ai { background: var(--white); color: var(--deep); border-bottom-left-radius: 4px; box-shadow: var(--shadow); align-self: flex-start; }
   .msg.user { background: var(--saffron); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
@@ -345,6 +367,35 @@
 </head>
 <body>
 
+<div class="offline-banner" id="offline-banner">📡 No internet connection — some features may not work</div>
+
+<div id="pin-lock">
+  <div style="font-size:52px;">🤝</div>
+  <div style="font-size:22px;font-weight:800;color:#fff;">Saathi</div>
+  <div style="font-size:15px;color:rgba(255,255,255,0.8);">Enter your PIN to continue</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd-0"></div>
+    <div class="pin-dot" id="pd-1"></div>
+    <div class="pin-dot" id="pd-2"></div>
+    <div class="pin-dot" id="pd-3"></div>
+  </div>
+  <div id="pin-error" style="font-size:13px;color:#FEE2E2;height:18px;"></div>
+  <div class="pin-pad">
+    <button class="pin-key" onclick="pinPress('1')">1</button>
+    <button class="pin-key" onclick="pinPress('2')">2</button>
+    <button class="pin-key" onclick="pinPress('3')">3</button>
+    <button class="pin-key" onclick="pinPress('4')">4</button>
+    <button class="pin-key" onclick="pinPress('5')">5</button>
+    <button class="pin-key" onclick="pinPress('6')">6</button>
+    <button class="pin-key" onclick="pinPress('7')">7</button>
+    <button class="pin-key" onclick="pinPress('8')">8</button>
+    <button class="pin-key" onclick="pinPress('9')">9</button>
+    <button class="pin-key" style="background:transparent;"></button>
+    <button class="pin-key" onclick="pinPress('0')">0</button>
+    <button class="pin-key del" onclick="pinDelete()">⌫</button>
+  </div>
+</div>
+
 <!-- SPLASH -->
 <div id="splash" class="screen active">
   <div class="splash-logo">🤝</div>
@@ -361,6 +412,10 @@
     <p id="auth-hero-sub">India's Senior Life Companion</p>
   </div>
   <div class="auth-body">
+    <div style="background:var(--deep);padding:8px 20px;display:flex;justify-content:space-between;align-items:center;">
+    <span style="font-size:12px;color:rgba(255,255,255,0.5);">Built by</span>
+    <a href="https://pawank2611.vercel.app/" target="_blank" style="font-size:12px;font-weight:700;color:var(--saffron);text-decoration:none;">Pawan Kumar ↗</a>
+  </div>
     <div class="lang-toggle-row">
       <button class="lang-btn active" onclick="setLang('en')">English</button>
       <button class="lang-btn" onclick="setLang('hi')">हिंदी</button>
@@ -382,6 +437,7 @@
       </div>
       <button class="btn-primary" onclick="doLogin()" style="margin-bottom:12px;">Sign In →</button>
       <div style="text-align:center;font-size:13px;color:var(--muted);">Forgot password? <span style="color:var(--saffron);cursor:pointer;font-weight:600;" onclick="doForgotPassword()">Reset here</span></div>
+      <div style="text-align:center;font-size:13px;color:var(--muted);margin-top:8px;">Didn't get verification email? <span style="color:var(--saffron);cursor:pointer;font-weight:600;" onclick="resendVerification()">Resend</span></div>
     </div>
 
     <!-- SIGNUP -->
@@ -608,6 +664,10 @@
     <p id="profile-modal-info">Age • Blood Group</p>
     <button class="btn-outline" onclick="closeProfileModal()" style="margin-bottom:10px;">Close</button>
     <button class="btn-danger" onclick="doLogout()" style="width:100%;padding:14px;background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;">🚪 Logout</button>
+    <div style="margin-top:16px;font-size:11px;color:var(--muted);text-align:center;">
+      Saathi v1.0 · Made with ❤️ in India 🇮🇳<br>
+      <a href="https://pawank2611.vercel.app/" target="_blank" style="color:var(--saffron);text-decoration:none;font-weight:600;">Built by Pawan Kumar ↗</a>
+    </div>
   </div>
 </div>
 
@@ -616,9 +676,18 @@
   <div class="modal">
     <div style="font-size:56px;">🆘</div>
     <h2 style="color:var(--red);">Emergency SOS</h2>
-    <p id="sos-modal-text">This will immediately send an emergency alert with your location to all family contacts via Email.</p>
-    <button class="btn-danger" onclick="triggerSOS()">📤 Send Emergency Alert NOW</button>
-    <button class="btn-cancel" onclick="closeSOSModal()">Cancel — I'm OK</button>
+    <p id="sos-modal-text">This will send an emergency alert with your GPS location to all family contacts.</p>
+    <div id="sos-countdown-ring" style="display:none;margin:12px auto;">
+      <svg width="80" height="80" viewBox="0 0 80 80">
+        <circle cx="40" cy="40" r="34" fill="none" stroke="#FEE2E2" stroke-width="6"/>
+        <circle id="sos-ring-circle" cx="40" cy="40" r="34" fill="none" stroke="#EF4444" stroke-width="6"
+          stroke-dasharray="213.6" stroke-dashoffset="0" stroke-linecap="round"
+          style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset 1s linear;"/>
+        <text id="sos-countdown-text" x="40" y="46" text-anchor="middle" font-size="24" font-weight="800" fill="#EF4444">5</text>
+      </svg>
+    </div>
+    <button class="btn-danger" id="sos-send-btn" onclick="startSOSCountdown()">📤 Send Emergency Alert</button>
+    <button class="btn-cancel" id="sos-cancel-btn" onclick="cancelSOS()">Cancel — I'm OK</button>
   </div>
 </div>
 
@@ -646,6 +715,10 @@
 </div>
 
 <script>
+
+window.addEventListener('online', () => document.getElementById('offline-banner').classList.remove('show'));
+window.addEventListener('offline', () => document.getElementById('offline-banner').classList.add('show'));
+if (!navigator.onLine) document.getElementById('offline-banner').classList.add('show');
 // ═══════════════════════════════════════════════
 // CONFIG
 // ═══════════════════════════════════════════════
@@ -715,6 +788,7 @@ setTimeout(() => {
         userProfile = doc.data();
         showScreen('app');
         initApp();
+        showPinLock();
       } else {
         showScreen('onboarding');
         renderObStep();
@@ -763,12 +837,18 @@ async function doLogin() {
   try {
     const result = await auth.signInWithEmailAndPassword(email, password);
     currentUser = result.user;
+    if (!result.user.emailVerified) {
+      await auth.signOut();
+      showToast('Please verify your email first. Check your inbox.', 'error');
+      return;
+    }
     showToast('Welcome back! ✓', 'success');
     const doc = await db.collection('users').doc(currentUser.uid).get();
     if (doc.exists && doc.data().onboardingDone) {
       userProfile = doc.data();
       showScreen('app');
       initApp();
+      showPinLock();
     } else {
       showScreen('onboarding');
       obStep = 1;
@@ -794,10 +874,10 @@ async function doSignup() {
   try {
     const result = await auth.createUserWithEmailAndPassword(email, password);
     currentUser = result.user;
-    // Store phone in obData for profile
+    await result.user.sendEmailVerification();
     obData.personal.phone = '+91' + phone;
     obData.personal.email = email;
-    showToast('Account created! ✓', 'success');
+    showToast('Verification email sent! Check your inbox ✓', 'success');
     showScreen('onboarding');
     obStep = 1;
     renderObStep();
@@ -807,6 +887,53 @@ async function doSignup() {
     showToast(msg, 'error');
   }
 }
+
+let pinEntry = '';
+
+function showPinLock() {
+  if (!userProfile?.prefs?.pin) return;
+  pinEntry = '';
+  updatePinDots();
+  document.getElementById('pin-error').textContent = '';
+  document.getElementById('pin-lock').classList.add('show');
+}
+
+function hidePinLock() {
+  document.getElementById('pin-lock').classList.remove('show');
+}
+
+function pinPress(digit) {
+  if (pinEntry.length >= 4) return;
+  pinEntry += digit;
+  updatePinDots();
+  if (pinEntry.length === 4) {
+    setTimeout(() => {
+      if (pinEntry === userProfile?.prefs?.pin) {
+        hidePinLock();
+      } else {
+        document.getElementById('pin-error').textContent = 'Wrong PIN. Try again.';
+        pinEntry = '';
+        updatePinDots();
+      }
+    }, 200);
+  }
+}
+
+function pinDelete() {
+  pinEntry = pinEntry.slice(0, -1);
+  updatePinDots();
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById('pd-' + i).classList.toggle('filled', i < pinEntry.length);
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  if (currentUser && userProfile?.prefs?.pin) showPinLock();
+});
 
 async function doForgotPassword() {
   const email = document.getElementById('login-email').value.trim();
@@ -1078,6 +1205,7 @@ async function saveProfile() {
     showScreen('app');
     initApp();
     showToast('Welcome to Saathi! 🎉', 'success');
+    // no pin lock on first setup
   } catch(e) {
     btn.disabled = false; btn.textContent = 'Complete Setup 🎉';
     showToast('Error saving. Try again.', 'error');
@@ -1088,13 +1216,13 @@ async function saveProfile() {
 // MAIN APP INIT
 // ═══════════════════════════════════════════════
 function initApp() {
+  chatInitialized = false;
   loadMedicineStatus();
   updateGreeting();
   loadHomeMeds();
   loadFamilyContacts();
   loadFamilyUpdate();
   loadVitals();
-  initChat();
   applyLang();
 }
 
@@ -1134,7 +1262,7 @@ function loadHomeMeds() {
   let html = '';
 
   if (meds.length === 0) {
-    html = '<div style="color:var(--muted);text-align:center;padding:16px;">No medicines added<br><small>Add in Health tab</small></div>';
+    html = '<div style="text-align:center;padding:20px;"><div style="font-size:40px;margin-bottom:8px;">💊</div><div style="font-weight:700;color:var(--deep);font-size:15px;">No medicines added yet</div><div style="font-size:13px;color:var(--muted);margin-top:4px;">Go to Health tab to add your daily medicines</div></div>';
   } else {
     meds.forEach((m, i) => {
       const statusKey = today + '_' + i;
@@ -1337,8 +1465,53 @@ Generated by Saathi App.`;
 // ═══════════════════════════════════════════════
 // SOS
 // ═══════════════════════════════════════════════
-function showSOSModal() { document.getElementById('sos-modal').classList.add('show'); }
-function closeSOSModal() { document.getElementById('sos-modal').classList.remove('show'); }
+let sosTimer = null;
+let sosCount = 5;
+
+function showSOSModal() {
+  sosCount = 5;
+  document.getElementById('sos-countdown-ring').style.display = 'none';
+  document.getElementById('sos-send-btn').style.display = 'block';
+  document.getElementById('sos-send-btn').textContent = '📤 Send Emergency Alert';
+  document.getElementById('sos-modal').classList.add('show');
+}
+
+function closeSOSModal() {
+  cancelSOS();
+  document.getElementById('sos-modal').classList.remove('show');
+}
+
+function cancelSOS() {
+  if (sosTimer) { clearInterval(sosTimer); sosTimer = null; }
+  sosCount = 5;
+  document.getElementById('sos-countdown-ring').style.display = 'none';
+  document.getElementById('sos-send-btn').style.display = 'block';
+  document.getElementById('sos-send-btn').textContent = '📤 Send Emergency Alert';
+  document.getElementById('sos-cancel-btn').textContent = 'Cancel — I\'m OK';
+}
+
+function startSOSCountdown() {
+  document.getElementById('sos-countdown-ring').style.display = 'block';
+  document.getElementById('sos-send-btn').style.display = 'none';
+  document.getElementById('sos-cancel-btn').textContent = 'Cancel';
+  const circle = document.getElementById('sos-ring-circle');
+  const countText = document.getElementById('sos-countdown-text');
+  const circumference = 213.6;
+  sosCount = 5;
+  countText.textContent = sosCount;
+  circle.style.strokeDashoffset = 0;
+  sosTimer = setInterval(() => {
+    sosCount--;
+    countText.textContent = sosCount;
+    circle.style.strokeDashoffset = circumference * ((5 - sosCount) / 5);
+    if (sosCount <= 0) {
+      clearInterval(sosTimer); sosTimer = null;
+      document.getElementById('sos-modal').classList.remove('show');
+      cancelSOS();
+      triggerSOS();
+    }
+  }, 1000);
+}
 
 async function triggerSOS() {
   closeSOSModal();
@@ -1410,13 +1583,27 @@ function renderAppointments() {
   const el = document.getElementById('appt-list');
   if (!el) return;
   if (appts.length === 0) { el.innerHTML = '<div style="color:var(--muted);text-align:center;padding:16px;">No appointments yet</div>'; return; }
-  el.innerHTML = appts.map(a => `
+  el.innerHTML = appts.map((a, i) => `
     <div class="appt-card">
       <div class="appt-icon">🏥</div>
-      <div><div class="appt-title">${a.title}</div><div class="appt-time">${a.dateStr || a.date}</div>${a.notes ? `<div style="font-size:12px;color:var(--muted);margin-top:2px;">${a.notes}</div>` : ''}</div>
-      <div class="appt-badge upcoming">Upcoming</div>
+      <div style="flex:1;"><div class="appt-title">${a.title}</div><div class="appt-time">${a.dateStr || a.date}</div>${a.notes ? `<div style="font-size:12px;color:var(--muted);margin-top:2px;">${a.notes}</div>` : ''}</div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px;">
+        <div class="appt-badge upcoming">Upcoming</div>
+        <button onclick="deleteAppointment(${i})" style="background:#FEE2E2;border:none;color:var(--red);font-size:11px;font-weight:600;padding:4px 8px;border-radius:6px;cursor:pointer;">✕ Remove</button>
+      </div>
     </div>
   `).join('');
+}
+
+async function deleteAppointment(i) {
+  const appts = userProfile.appointments || [];
+  appts.splice(i, 1);
+  userProfile.appointments = appts;
+  try {
+    await db.collection('users').doc(currentUser.uid).update({ appointments: appts });
+    showToast('Appointment removed ✓', 'success');
+  } catch(e) { showToast('Removed locally', 'success'); }
+  renderAppointments();
 }
 
 // ═══════════════════════════════════════════════
@@ -1424,7 +1611,22 @@ function renderAppointments() {
 // ═══════════════════════════════════════════════
 function initChat() {
   const name = userProfile?.name?.split(' ')[0] || 'ji';
-  addAIMessage(`Namaste ${name} ji! 🙏 Main aapka Saathi hoon — aapka digital saathi. Aaj kaise hain aap? I can help you with your medicines, health questions, appointments, or just have a friendly chat. 😊`);
+  const lastVisit = localStorage.getItem('saathi_last_visit');
+  const now = new Date();
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Subah' : hour < 17 ? 'Dopahar' : 'Shaam';
+  let msg = '';
+  if (lastVisit) {
+    const last = new Date(lastVisit);
+    const daysDiff = Math.floor((now - last) / (1000 * 60 * 60 * 24));
+    const timeStr = last.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const dayStr = daysDiff === 0 ? 'aaj' : daysDiff === 1 ? 'kal' : `${daysDiff} din pehle`;
+    msg = `${greeting} ${name} ji! 🙏 Aapki pichli visit ${dayStr} ${timeStr} pe thi. Aaj kaise hain aap? Koi madad chahiye? 😊`;
+  } else {
+    msg = `Namaste ${name} ji! 🙏 Main aapka Saathi hoon — aapka digital saathi. Aaj kaise hain aap? I can help you with your medicines, health questions, appointments, or just have a friendly chat. 😊`;
+  }
+  localStorage.setItem('saathi_last_visit', now.toISOString());
+  addAIMessage(msg);
 }
 
 // ═══════════════════════════════════════════════
@@ -1680,6 +1882,20 @@ async function doLogout() {
     showToast('Logged out ✓', 'success');
   } catch(e) {
     showToast('Logout failed', 'error');
+  }
+}
+async function resendVerification() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!email || !password) { showToast('Enter email and password first', 'error'); return; }
+  try {
+    const result = await auth.signInWithEmailAndPassword(email, password);
+    if (result.user.emailVerified) { showToast('Your email is already verified!', 'success'); return; }
+    await result.user.sendEmailVerification();
+    await auth.signOut();
+    showToast('Verification email resent ✓', 'success');
+  } catch(e) {
+    showToast('Could not resend. Check email and password.', 'error');
   }
 }
 </script>
