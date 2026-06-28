@@ -279,7 +279,7 @@
   .chat-header h2 { color: #fff; font-size: 20px; font-weight: 800; }
   .chat-header p { color: rgba(255,255,255,0.8); font-size: 13px; margin-top: 2px; }
   
-  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; max-height: calc(100vh - 160px); }
   .msg { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 15px; line-height: 1.5; }
   .msg.ai { background: var(--white); color: var(--deep); border-bottom-left-radius: 4px; box-shadow: var(--shadow); align-self: flex-start; }
   .msg.user { background: var(--saffron); color: #fff; border-bottom-right-radius: 4px; align-self: flex-end; }
@@ -677,7 +677,7 @@
     <h2 style="color:var(--red);">Emergency SOS</h2>
     <p id="sos-modal-text">This will send an emergency alert with your GPS location to all family contacts.</p>
     <div id="sos-countdown-ring" style="display:none;margin:12px auto;">
-      <svg width="80" height="80" viewBox="0 0 80 80">
+      <svg width="80" height="80" viewBox="0 0 80 80" style="pointer-events:none;">
         <circle cx="40" cy="40" r="34" fill="none" stroke="#FEE2E2" stroke-width="6"/>
         <circle id="sos-ring-circle" cx="40" cy="40" r="34" fill="none" stroke="#EF4444" stroke-width="6"
           stroke-dasharray="213.6" stroke-dashoffset="0" stroke-linecap="round"
@@ -781,6 +781,11 @@ const T = {
 setTimeout(() => {
   auth.onAuthStateChanged(async user => {
     if (user) {
+      if (!user.emailVerified) {
+        await auth.signOut();
+        showScreen('auth');
+        return;
+      }
       currentUser = user;
       const doc = await db.collection('users').doc(user.uid).get();
       if (doc.exists && doc.data().onboardingDone) {
@@ -872,14 +877,13 @@ async function doSignup() {
   if (password !== password2) { showToast('Passwords do not match', 'error'); return; }
   try {
     const result = await auth.createUserWithEmailAndPassword(email, password);
-    currentUser = result.user;
     await result.user.sendEmailVerification();
+    await auth.signOut();
     obData.personal.phone = '+91' + phone;
     obData.personal.email = email;
-    showToast('Verification email sent! Check your inbox ✓', 'success');
-    showScreen('onboarding');
-    obStep = 1;
-    renderObStep();
+    showToast('Verification email sent! Please verify then Sign In. ✓', 'success');
+    switchAuthTab('login');
+    document.getElementById('login-email').value = email;
   } catch(e) {
     const msg = e.code === 'auth/email-already-in-use' ? 'Email already registered. Please sign in.' :
                 e.code === 'auth/invalid-email' ? 'Invalid email address.' : 'Signup failed: ' + e.message;
@@ -1214,6 +1218,7 @@ async function saveProfile() {
 // ═══════════════════════════════════════════════
 // MAIN APP INIT
 // ═══════════════════════════════════════════════
+let chatInitialized = false;
 function initApp() {
   chatInitialized = false;
   loadMedicineStatus();
@@ -1840,6 +1845,7 @@ function switchTab(tab) {
   if (tab === 'home') { loadHomeMeds(); renderAppointments(); }
   if (tab === 'health') { loadVitals(); renderHealthMeds(); }
   if (tab === 'family') { loadFamilyUpdate(); }
+  if (tab === 'chat' && !chatInitialized) { initChat(); chatInitialized = true; }
 }
 
 // ═══════════════════════════════════════════════
